@@ -5,6 +5,7 @@ Commands (all print one JSON object; "ok": false on any error):
   fetch   Oldest unhandled Primary-inbox messages. Read-only; never marks mail read.
   draft   Save a reply or forward as a threaded Gmail draft. There is no send.
   mark    Record messages (by uid) as handled so later fetches skip them.
+  check   Log in and confirm INBOX, Drafts and Sent are reachable. Changes nothing.
   review  Compare earlier drafts with Sent/Drafts: sent_as_is, edited, deleted, pending, expired.
 
 Auth: IMAP with a Gmail app password.
@@ -783,6 +784,23 @@ def cmd_review(a):
     out({"ok": True, "counts": counts, "results": [r for r in results if r["status"] != "pending"]})
 
 
+def cmd_check(a):
+    m, user = connect()
+    try:
+        typ, data = m.select("INBOX", readonly=True)
+        if typ != "OK":
+            die(f"cannot open INBOX: {data}")
+        drafts = special_folder(m, "\\Drafts", '"[Gmail]/Drafts"')
+        sent = special_folder(m, "\\Sent", '"[Gmail]/Sent Mail"')
+    finally:
+        with contextlib.suppress(Exception):
+            m.logout()
+    with locked_state() as state:
+        run = state.get("run")
+    out({"ok": True, "account": user, "inbox_messages": int(data[0]), "drafts_folder": drafts,
+         "sent_folder": sent, "run_in_progress": bool(run and run.get("expires", 0) > time.time())})
+
+
 class JsonParser(argparse.ArgumentParser):
     def error(self, message):
         out({"ok": False, "error": f"usage: {message}"})
@@ -816,9 +834,10 @@ def main():
     k.add_argument("--run", required=True)
     k.add_argument("--final", action="store_true")
     sub.add_parser("review")
+    sub.add_parser("check")
     a = p.parse_args()
     try:
-        {"fetch": cmd_fetch, "draft": cmd_draft, "mark": cmd_mark, "review": cmd_review}[a.cmd](a)
+        {"fetch": cmd_fetch, "draft": cmd_draft, "mark": cmd_mark, "review": cmd_review, "check": cmd_check}[a.cmd](a)
     except Fail as e:
         out({"ok": False, "error": str(e)})
         sys.exit(1)

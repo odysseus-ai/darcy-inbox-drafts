@@ -26,7 +26,7 @@ cp ~/.openclaw/workspace/skills/darcy-inbox-drafts/config.example.json ~/.config
 nano ~/.config/darcy-inbox/config.json          # her address, timezone, brand manager, team
 nano ~/.config/darcy-inbox/app-password         # Gmail app password
 chmod 600 ~/.config/darcy-inbox/app-password
-python3 ~/.openclaw/workspace/skills/darcy-inbox-drafts/scripts/inbox.py fetch --hours 24 --limit 3
+python3 ~/.openclaw/workspace/skills/darcy-inbox-drafts/scripts/inbox.py check
 ```
 
 The last command must print `"ok": true`. Then ask the agent:
@@ -38,7 +38,7 @@ Update later with the same `install` command. Config, password, and learned exam
 ## Files
 
 - `SKILL.md`: the agent's instructions.
-- `scripts/inbox.py`: Gmail over IMAP. `fetch`, `draft`, `mark`, `review`. No send command exists.
+- `scripts/inbox.py`: Gmail over IMAP. `check`, `fetch`, `draft`, `mark`, `review`. No send command exists.
 - `references/email-voice.md`: how Darcy writes email, built from the GrantHouse voice files (Sept 19, 2026).
 - `references/triage.md`: sorting rules and the brand-deal handoff format.
 - `config.example.json`: settings template.

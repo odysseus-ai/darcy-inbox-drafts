@@ -24,7 +24,7 @@ Only one run at a time: the first `fetch` returns a `run` token; pass `--run <to
    never wipes them.
 2. Put her Gmail app password in `~/.config/darcy-inbox/app-password` (chmod 600). Google Account →
    Security → 2-Step Verification → App passwords.
-3. Verify: `S fetch --hours 24 --limit 3` returns `"ok": true`.
+3. Verify: `S check` returns `"ok": true` (logs in, changes nothing).
 4. Seed her voice: save 3–5 real replies Darcy has sent (a brand, a community member, a team
    member) to `~/.config/darcy-inbox/examples/`, one file each. Confirm her sign-offs in
    `config.signoff`. Put any other addresses that reach her inbox in `config.aliases`, and her Gmail
