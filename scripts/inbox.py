@@ -496,10 +496,27 @@ def fetch_batch(a, handled):
             except Exception as e:  # one bad message must never sink the batch
                 entry["error"] = f"could not parse: {type(e).__name__}: {e}"
             msgs.append(entry)
+        mark_darcy_replied(m, msgs)
     finally:
         with contextlib.suppress(Exception):
             m.logout()
     return user, msgs, remaining
+
+
+def mark_darcy_replied(m, msgs):
+    """darcy_replied: Darcy has sent at least one message in this Gmail thread."""
+    threads = {e["thread_id"] for e in msgs if e.get("thread_id")}
+    if not threads:
+        return
+    try:
+        m.select(special_folder(m, "\\All", '"[Gmail]/All Mail"'), readonly=True)
+        replied = {t for t in threads
+                   if search(m, "X-GM-THRID", t, "X-GM-RAW", q("from:me -in:drafts"))}
+    except Exception:  # the flag is a hint; never fail the fetch over it
+        return
+    for e in msgs:
+        if e.get("thread_id"):
+            e["darcy_replied"] = e["thread_id"] in replied
 
 
 def attach_originals(d, orig):
@@ -537,6 +554,7 @@ def cmd_draft(a):
     if not a.uid.isdigit():
         die(f"uid must be a number: {a.uid!r}")
     extra_cc = valid_pairs(a.cc, "--cc") if a.cc is not None else []
+    kind = "forward" if a.forward_to is not None else "reply"
     with locked_state():
         pass  # refuse to draft at all if the state file is unusable, so a retry can't duplicate
 
@@ -549,6 +567,13 @@ def cmd_draft(a):
         subj = decode_words(raw_header(orig, "Subject"))
         orig_mid = clean(raw_header(orig, "Message-ID"))
         orig_mid = orig_mid if re.fullmatch(r"<[^<>\s]+>", orig_mid) else ""
+        with locked_state() as state:
+            existing = [v for v in state["drafts"].values() if isinstance(v, dict) and v.get("kind") == kind
+                        and (v.get("orig_uid") == a.uid or (orig_mid and v.get("orig_mid") == orig_mid))]
+        if existing and not a.replace:
+            out({"ok": True, "already_drafted": True, "kind": kind, "subject": existing[0].get("subject", ""),
+                 "note": "a draft for this email already exists; counted as drafted (pass --replace to add another)"})
+            return
 
         d = EmailMessage()
         d["From"] = user
@@ -602,10 +627,11 @@ def cmd_draft(a):
 
         # Record first: if the state write fails, no draft exists, so a retry can't duplicate one.
         with locked_state() as state:
-            for old in [k for k, v in state["drafts"].items() if orig_mid and v.get("orig_mid") == orig_mid and v.get("kind") == kind]:
+            for old in [k for k, v in state["drafts"].items()
+                        if v.get("kind") == kind and (v.get("orig_uid") == a.uid or (orig_mid and v.get("orig_mid") == orig_mid))]:
                 del state["drafts"][old]  # a redraft of the same email replaces the earlier record
             state["drafts"][d["Message-ID"]] = {
-                "kind": kind, "orig_mid": orig_mid, "subject": d["Subject"],
+                "kind": kind, "orig_mid": orig_mid, "orig_uid": a.uid, "subject": d["Subject"],
                 "to": header_to(to_final), "cc": header_to(cc_final), "body": body, "created": time.time()}
         drafts = special_folder(m, "\\Drafts", '"[Gmail]/Drafts"')
         try:
@@ -784,6 +810,7 @@ def main():
     d.add_argument("--cc")
     d.add_argument("--reply-all", action="store_true")
     d.add_argument("--forward-to")
+    d.add_argument("--replace", action="store_true")
     k = sub.add_parser("mark")
     k.add_argument("--uids", nargs="+", required=True)
     k.add_argument("--run", required=True)

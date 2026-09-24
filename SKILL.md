@@ -30,7 +30,9 @@ Only one run at a time: the first `fetch` returns a `run` token; pass `--run <to
    `config.signoff`. Put any other addresses that reach her inbox in `config.aliases`, and her Gmail
    signature (if she has one) in `config.gmail_signature`, so reply-all never copies her and an
    unedited send isn't counted as an edit.
-5. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
+5. Check `config.digest.channel` and `config.digest.target` are filled in and a test message reaches
+   Darcy. Don't schedule until it does: an undeliverable digest means nothing gets marked handled.
+6. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
    "Run the darcy-inbox-drafts skill."
 
 ## Run
@@ -58,7 +60,8 @@ Only one run at a time: the first `fetch` returns a `run` token; pass `--run <to
    - Brand deal, `cc` mode: `S draft --uid <uid> --body-file <file> --reply-all --cc "<config.brand_manager>"`
    - Brand deal, `forward` mode: `S draft --uid <uid> --body-file <file> --forward-to "<config.brand_manager>"`
      (attachments such as media kits and briefs are carried over)
-   Retry a failure once, then list it in the digest as "couldn't draft". Follow `email-voice.md`:
+   `"already_drafted": true` means a draft for that email already exists from an earlier run: count it as
+   drafted, don't redraft. Retry a failure once, then list it in the digest as "couldn't draft". Follow `email-voice.md`:
    anything you can't source from the thread or config becomes `[[CHECK: …]]` inside the draft.
    Sign off with the matching `config.signoff`. Use only links from `config.links`.
 5. **Next batch.** If `remaining` > 0: `S mark --uids <uid> … --run <token>` for this batch, then
@@ -86,7 +89,7 @@ Good morning Darcy ☀️ [N] new emails, [D] drafts ready in Gmail.
 
 👀 FYI: [comma list]    🗑️ Skipped: [n] [pitch/pitches]
 
-Yesterday: [a] sent as-is, [b] edited, [c] deleted.
+Yesterday: [a] sent as-is, [b] edited, [c] deleted, [e] expired unsent.
 
 Open Gmail → Drafts: send, edit, or delete each one.
 ```
@@ -94,10 +97,11 @@ Open Gmail → Drafts: send, edit, or delete each one.
 Rules:
 - Each email appears **once**, in the highest section that applies (Needs you first > Brand deals >
   Your call > Replies drafted > FYI). Any draft containing `[[CHECK]]` goes under Your call.
-- Brand items needing Darcy's own decision (contract, usage rights, poor fit) go under Your call.
+- Brand deals: see "Digest placement" in `triage.md`.
 - For an other-language email, add a short English gloss of what the draft says.
 - Omit empty sections, and the Yesterday line when there's nothing to report. Use correct plurals.
-- Stay under 200 words: trim FYI to a count first, then shorten Replies drafted bullets.
+- Stay under 200 words: trim FYI to a count, then Replies drafted to names only, then cut each Your call
+  line to the decision alone ("Jordan: $37 refund?"). Needs you first is never trimmed.
 
 ## Voice over time
 

@@ -9,7 +9,7 @@ Check buckets top to bottom; the first match wins. Flags never change the bucket
 |---|---|---|---|
 | 1 | **phishing** | Credential or login request, payment to a new account, lookalike domain (`youtube-partner-verify.co`), threats of suspension with a link | No draft. Digest: ⚠️ "possible phishing — don't click". |
 | 2 | **skip** | Cold sales/SEO/link-building/guest-post pitches, generic "we can grow your channel" offers | No draft. Count only. |
-| 3 | **fyi** | Receipts, confirmations, notifications, newsletters (`bulk: true` and no personal ask), bare thank-yous that ask nothing, senders in `config.never_draft` | No draft. One line in the digest. |
+| 3 | **fyi** | Receipts, confirmations, notifications, newsletters (`bulk: true` and no personal ask), bare thank-yous (one or two lines of thanks with no news), senders in `config.never_draft` | No draft. One line in the digest. Wins, stories and struggles are **community**, never fyi. |
 | 4 | **brand-manager** | Sender is `config.brand_manager` | Treat as team: reply draft; decisions go to Your call. |
 | 5 | **brand-deal** | A company/agency offering paid or affiliate promotion: sponsorship, integration, UGC, affiliate program, media-kit or rate request, speaking gig with a fee | See "Brand deals" below. |
 | 6 | **creator-collab** | Another creator proposing an unpaid collab, guest spot, or cross-promotion | Admin-style reply that thanks them and says Darcy will look at it; `[[CHECK: yes/no + next step]]`. Not routed to the brand manager. |
@@ -22,12 +22,13 @@ Check buckets top to bottom; the first match wins. Flags never change the bucket
 ## Flags
 
 - **urgent**: legal notice, platform copyright claim or strike (a real one; fake ones are phishing), payment
-  failure, account security, a real deadline within 48h set by someone Darcy works with, anyone in
-  `config.vip_senders`. Moves the item to "Needs you first" in the digest. A brand's self-imposed
-  deadline ("need an answer today") is **not** urgent; report it as "wants answer by X" under Brand deals.
-- **thread**: the message continues a thread Darcy already replied to (Subject starts with Re: and the
-  quoted text shows her words). Reply if the new message asks something or needs an answer; bare
-  thank-yous stay fyi. Never overrides phishing or skip.
+  failure, account security, anyone in `config.vip_senders`, or a real deadline within 48h on something
+  Darcy would act on (press, event, team, partner, platform, customer). Moves the item to "Needs you
+  first" in the digest. Only a brand's sales pressure ("need an answer today") is **not** urgent; report
+  it as "wants answer by X" on the brand line.
+- **thread**: `darcy_replied` is true in the fetch output (she has sent a message in this Gmail thread).
+  Reply if the new message asks something or needs an answer; bare thank-yous stay fyi. Never overrides
+  phishing or skip.
 - **other-language**: not in English. Reply in the sender's language. Write every `[[CHECK]]` in English,
   and add an English gloss of the draft to the digest line so Darcy knows what she's sending.
 
@@ -43,6 +44,10 @@ Check buckets top to bottom; the first match wins. Flags never change the bucket
 
 Skip drafting and list it under "Your call" instead when the brand manager is already on To or Cc, or
 the email is about a deal already in progress (contract, usage rights, invoice).
+
+Digest placement: a deal that needs no decision from Darcy goes under Brand deals, including one that is
+"below your minimum" (the flag rides on its line). A "possible poor fit" deal, and every no-draft deal
+above, goes only under Your call with its flag text.
 
 Screen every brand deal and add the reason to its digest line:
 - Stated offer below `config.brand_min_rate_usd`, or affiliate-only with no flat fee → "below your minimum".
