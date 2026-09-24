@@ -1,0 +1,18 @@
+{
+  "inbox_user": "darcy@example.com",
+  "timezone": "America/New_York",
+  "run_time": "10:00",
+  "lookback_hours": 26,
+  "brand_manager": "Name <brandmanager@example.com>",
+  "brand_holding_reply": true,
+  "team": {
+    "editor@example.com": "Video editor",
+    "thumbnails@example.com": "Thumbnail designer"
+  },
+  "vip_senders": [],
+  "never_draft": [],
+  "links": {
+    "community": "https://www.skool.com/granthouse",
+    "youtube": ""
+  }
+}
