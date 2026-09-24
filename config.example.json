@@ -2,9 +2,21 @@
   "inbox_user": "darcy@example.com",
   "timezone": "America/New_York",
   "run_time": "10:00",
-  "lookback_hours": 26,
-  "brand_manager": "Name <brandmanager@example.com>",
-  "brand_holding_reply": true,
+  "lookback_hours": 72,
+  "digest": {
+    "channel": "slack",
+    "target": ""
+  },
+  "brand_manager": "brandmanager@example.com",
+  "brand_manager_name": "",
+  "brand_mode": "cc",
+  "brand_min_rate_usd": 0,
+  "brand_flag_categories": [
+    "merchant cash advance / revenue-based advance",
+    "payday or high-interest loans",
+    "crypto or trading",
+    "guaranteed-funding or grant-writing-for-a-fee services"
+  ],
   "signoff": {
     "community": "Coach Darcy 💙",
     "business": "Best,\nDarcy",
@@ -12,13 +24,16 @@
   },
   "team": {
     "editor@example.com": "Video editor",
-    "thumbnails@example.com": "Thumbnail designer"
+    "thumbnails@example.com": "Thumbnail designer",
+    "va@example.com": "Virtual assistant"
   },
   "vip_senders": [],
   "never_draft": [],
   "links": {
-    "community": "https://www.skool.com/darcys-business",
+    "community": "https://www.skool.com/granthouse",
     "grant_ready_guide": "",
-    "grant_list": ""
-  }
+    "grant_list": "",
+    "platform": ""
+  },
+  "platform_blurb": ""
 }

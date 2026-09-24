@@ -1,38 +1,75 @@
 # Triage rules
 
-Classify every fetched message into exactly one bucket. First match wins, top to bottom.
+Give every fetched message **one bucket** (what to do) plus any **flags** (how loudly to report it).
+Check buckets top to bottom; the first match wins. Flags never change the bucket's action.
+
+## Buckets
 
 | # | Bucket | Signals | Action |
 |---|---|---|---|
-| 1 | **urgent** | Legal, payment failure, account security, platform strike/claim, a deadline inside 48h, anything from `config.vip_senders` | Draft a reply only if safe; always list first in the digest with the reason. |
-| 2 | **brand-deal** | Sponsorship, collaboration, paid partnership, UGC, affiliate offer, media kit or rate request, agency outreach | Forward draft to `config.brand_manager` with a 3-line summary. Plus a short holding reply to the brand if `config.brand_holding_reply` is true. Never discuss terms. |
-| 3 | **community** | Viewer, Skool/GrantHouse member, student, grant question, thank-you, story share | Reply draft in coach voice. |
-| 4 | **team** | Video editor, thumbnail designer, VA, contractor — sender in `config.team` or content about edits, drafts, invoices for work | Reply draft; state decisions or ask Darcy in the digest when a decision is hers. |
-| 5 | **admin** | Scheduling, invoices from vendors, partners, collaborators, podcast/press invites | Reply draft when a reply is expected; otherwise digest-only. |
-| 6 | **fyi** | Receipts, confirmations, notifications, newsletters she reads (`bulk: true`), no reply expected | No draft. One line in the digest. |
-| 7 | **skip** | Cold sales pitches, SEO/link-building spam, "guest post" offers, obvious phishing | No draft. Count only ("skipped 6 cold pitches"). |
+| 1 | **phishing** | Credential or login request, payment to a new account, lookalike domain (`youtube-partner-verify.co`), threats of suspension with a link | No draft. Digest: ⚠️ "possible phishing — don't click". |
+| 2 | **skip** | Cold sales/SEO/link-building/guest-post pitches, generic "we can grow your channel" offers | No draft. Count only. |
+| 3 | **fyi** | Receipts, confirmations, notifications, newsletters (`bulk: true` and no personal ask), bare thank-yous that ask nothing, senders in `config.never_draft` | No draft. One line in the digest. |
+| 4 | **brand-manager** | Sender is `config.brand_manager` | Treat as team: reply draft; decisions go to Your call. |
+| 5 | **brand-deal** | A company/agency offering paid or affiliate promotion: sponsorship, integration, UGC, affiliate program, media-kit or rate request, speaking gig with a fee | See "Brand deals" below. |
+| 6 | **creator-collab** | Another creator proposing an unpaid collab, guest spot, or cross-promotion | Admin-style reply that thanks them and says Darcy will look at it; `[[CHECK: yes/no + next step]]`. Not routed to the brand manager. |
+| 7 | **customer** | A buyer of her digital products or programs: refund, access problem, order question | Business register, no upsell, no community pitch. Remedy is `[[CHECK: …]]` (refund yes/no, access fix). |
+| 8 | **complaint** | Someone upset with her, her content, community, or product | Business-warm register. Acknowledge the specific issue, apologise for the specific thing if warranted, no praise, no pep talk. Remedy is `[[CHECK]]`. |
+| 9 | **community** | Viewer, GrantHouse member, student: questions, wins, struggles, stories | Coach reply per `email-voice.md`. |
+| 10 | **team** | Senders in `config.team`, or work on her videos, thumbnails, admin | Reply; state only what's decided; every open decision is `[[CHECK]]`. |
+| 11 | **admin** | Podcasts, press, events without a fee, partners, scheduling, vendor invoices | Reply when a reply is expected; dates, availability and money are `[[CHECK]]`. |
 
-## Judgment calls
+## Flags
 
-- `bulk: true` is a strong hint for fyi/skip, but brand outreach from agencies often comes through
-  mailing tools — read the body before skipping.
-- A phishing sign (mismatched domain, credential request, urgent payment to a new account) → put it in
-  **urgent** as "possible phishing — do not click". Never draft a reply to it.
-- If the sender is already in a thread Darcy replied to, reply to continue the thread, whatever the
-  bucket.
-- Unsure between brand-deal and admin → brand-deal. Unsure between skip and anything else → not skip.
+- **urgent**: legal notice, platform copyright claim or strike (a real one; fake ones are phishing), payment
+  failure, account security, a real deadline within 48h set by someone Darcy works with, anyone in
+  `config.vip_senders`. Moves the item to "Needs you first" in the digest. A brand's self-imposed
+  deadline ("need an answer today") is **not** urgent; report it as "wants answer by X" under Brand deals.
+- **thread**: the message continues a thread Darcy already replied to (Subject starts with Re: and the
+  quoted text shows her words). Reply if the new message asks something or needs an answer; bare
+  thank-yous stay fyi. Never overrides phishing or skip.
+- **other-language**: not in English. Reply in the sender's language. Write every `[[CHECK]]` in English,
+  and add an English gloss of the draft to the digest line so Darcy knows what she's sending.
 
-## Brand-deal summary format (top of the forward draft)
+## Brand deals
+
+`config.brand_mode` controls the draft:
+
+- **`cc` (default):** one reply to the brand, CC `config.brand_manager`: thank them, say you're looping in
+  your brand manager (by first name, `config.brand_manager_name`) who handles partnerships. When Darcy
+  taps Send, the manager is on the thread with full context. Don't mention rates, dates, deliverables,
+  exclusivity, or anything resembling a yes.
+- **`forward`:** a forward to the brand manager with the summary below, and no reply to the brand.
+
+Skip drafting and list it under "Your call" instead when the brand manager is already on To or Cc, or
+the email is about a deal already in progress (contract, usage rights, invoice).
+
+Screen every brand deal and add the reason to its digest line:
+- Stated offer below `config.brand_min_rate_usd`, or affiliate-only with no flat fee → "below your minimum".
+- Company in `config.brand_flag_categories` (e.g. merchant cash advances, crypto) or pitching something
+  that conflicts with honest funding advice → "possible poor fit — your call".
+Flagged deals still get the normal draft; Darcy decides whether to send it.
+
+Interest is shown only when the fit is clear ("my audience of small-business owners could use this").
+Otherwise just thank them. Never "I love this", "I'm excited about this campaign".
+
+Forward summary (`forward` mode):
 
 ```
-Hi [brand manager first name],
+Hi [config.brand_manager_name],
 
 New inbound from [Brand] — can you take this one?
 
-• Ask: [what they want — deliverables, platform, timing]
-• Offer: [budget/rate if stated, else "no rate given"]
-• Deadline: [date if stated, else "none given"]
+• Ask: [deliverables, platform, timing]
+• Offer: [stated rate/budget, or "no rate given"]
+• Deadline: [their date, or "none given"]
 
 Thanks!
 Darcy
 ```
+
+## Judgment calls
+
+- `bulk: true` hints fyi/skip, but agencies send brand outreach through mailing tools. Read the body first.
+- Unsure between brand-deal and creator-collab: does the sender offer money or a paid product? If yes, it's a brand deal.
+- Unsure between skip and anything else → not skip. Unsure between phishing and a real platform notice → phishing (flag it; Darcy can check the real dashboard).

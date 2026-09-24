@@ -4,11 +4,13 @@ An OpenClaw skill that clears Darcy's inbox every morning without ever sending a
 
 At 10:00 each day the agent:
 
-1. Reads the last day of email in her Gmail **Primary** inbox (read-only; nothing is marked read).
-2. Sorts each message: urgent, brand deal, community, team, admin, FYI, or spam.
-3. Writes a reply **in Darcy's voice** and saves it as a **draft in her Gmail**, threaded under the
-   original email. Brand deals are drafted as a forward to her brand manager with a 3-line summary.
-4. Sends her one short digest in her chat channel listing what's ready and what needs her decision.
+1. Checks what she did with yesterday's drafts (sent as-is, edited, deleted) and learns from her edits.
+2. Reads new email in her Gmail **Primary** inbox (read-only; nothing is marked read).
+3. Sorts each message: brand deal, community, team, customer, complaint, creator collab, admin, FYI,
+   spam, or phishing, and flags anything urgent.
+4. Writes a reply **in Darcy's voice** and saves it as a **draft in her Gmail**, threaded under the
+   original email. Brand-deal replies copy in her brand manager, so one tap on Send hands it over.
+5. Sends her one short digest in her chat channel listing what's ready and what needs her decision.
 
 Darcy approves a reply by opening Gmail → Drafts and tapping **Send**. To modify, she edits the draft
 first. To reject, she deletes it. Nothing leaves her inbox without her tap.
@@ -36,8 +38,8 @@ Update later with the same `install` command. Config, password, and learned exam
 ## Files
 
 - `SKILL.md`: the agent's instructions.
-- `scripts/inbox.py`: Gmail over IMAP. `fetch`, `draft`, `mark`. No send command exists.
-- `references/email-voice.md`: how Darcy writes email.
+- `scripts/inbox.py`: Gmail over IMAP. `fetch`, `draft`, `mark`, `review`. No send command exists.
+- `references/email-voice.md`: how Darcy writes email, built from the GrantHouse voice files (Sept 19, 2026).
 - `references/triage.md`: sorting rules and the brand-deal handoff format.
 - `config.example.json`: settings template.
 
