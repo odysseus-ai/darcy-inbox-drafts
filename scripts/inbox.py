@@ -22,13 +22,27 @@ import re
 import sys
 import time
 from email.message import EmailMessage
-from email.utils import formatdate, make_msgid, parseaddr
+from email.utils import formataddr, formatdate, getaddresses, make_msgid
 
 HOST = "imap.gmail.com"
 DRAFTS = '"[Gmail]/Drafts"'
 CONF_DIR = os.path.expanduser("~/.config/darcy-inbox")
 STATE = os.environ.get("INBOX_STATE", os.path.join(CONF_DIR, "state.json"))
 BODY_MAX = 4000
+
+
+def addresses(raw):
+    """Parse an address header into (name, email) pairs, tolerating unquoted
+    display names with specials, e.g. `Jenna @ Brightwave <j@bw.com>`."""
+    raw = str(raw or "")
+    angled = re.findall(r'(?:^|,)\s*("[^"]*"|[^"<>,]*?)\s*<([^<>\s]+@[^<>\s]+)>', raw)
+    if angled:
+        return [(n.strip().strip('"'), a.lower()) for n, a in angled]
+    return [(n, a.lower()) for n, a in getaddresses([raw]) if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", a)]
+
+
+def header_to(raw):
+    return ", ".join(formataddr(p) for p in addresses(raw))
 
 
 def die(msg):
@@ -117,13 +131,13 @@ def cmd_fetch(a):
         mid = (msg.get("Message-ID") or "").strip()
         if mid in handled:
             continue
-        name, addr = parseaddr(msg.get("From", ""))
+        name, addr = (addresses(msg.get("From")) or [("", "")])[0]
         out.append({
             "uid": uid.decode(),
             "message_id": mid,
             "thread_id": (re.search(r"X-GM-THRID (\d+)", meta) or [None, None])[1],
             "from_name": name,
-            "from_email": addr.lower(),
+            "from_email": addr,
             "to": msg.get("To", ""),
             "cc": msg.get("Cc", ""),
             "subject": msg.get("Subject", ""),
@@ -157,16 +171,18 @@ def cmd_draft(a):
     d["Date"] = formatdate(localtime=True)
     d["Message-ID"] = make_msgid(domain=user.split("@")[1])
     if a.forward_to:
-        d["To"] = a.forward_to
+        d["To"] = header_to(a.forward_to) or a.forward_to
         d["Subject"] = subj if re.match(r"(?i)fwd?:", subj) else f"Fwd: {subj}"
         fwd = (f"\n\n---------- Forwarded message ---------\nFrom: {orig.get('From','')}\n"
                f"Date: {orig.get('Date','')}\nSubject: {subj}\nTo: {orig.get('To','')}\n\n{text_body(orig)}")
         d.set_content(body + fwd)
     else:
-        reply_to = orig.get("Reply-To") or orig.get("From")
-        d["To"] = a.to or reply_to
+        to = header_to(a.to or orig.get("Reply-To") or orig.get("From"))
+        if not to:
+            die(f"no valid recipient address on uid {a.uid}; pass --to")
+        d["To"] = to
         if a.cc:
-            d["Cc"] = a.cc
+            d["Cc"] = header_to(a.cc)
         d["Subject"] = subj if re.match(r"(?i)re:", subj) else f"Re: {subj}"
         mid = orig.get("Message-ID", "").strip()
         if mid:
