@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+from email.header import decode_header, make_header
 from email.message import EmailMessage
 from email.utils import formataddr, formatdate, getaddresses, make_msgid
 
@@ -31,14 +32,29 @@ STATE = os.environ.get("INBOX_STATE", os.path.join(CONF_DIR, "state.json"))
 BODY_MAX = 4000
 
 
+def decode_name(name):
+    try:
+        return str(make_header(decode_header(name)))
+    except (LookupError, ValueError):
+        return name
+
+
 def addresses(raw):
     """Parse an address header into (name, email) pairs, tolerating unquoted
     display names with specials, e.g. `Jenna @ Brightwave <j@bw.com>`."""
     raw = str(raw or "")
     angled = re.findall(r'(?:^|,)\s*("[^"]*"|[^"<>,]*?)\s*<([^<>\s]+@[^<>\s]+)>', raw)
     if angled:
-        return [(n.strip().strip('"'), a.lower()) for n, a in angled]
-    return [(n, a.lower()) for n, a in getaddresses([raw]) if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", a)]
+        return [(decode_name(n.strip().strip('"')), a.lower()) for n, a in angled]
+    return [(decode_name(n), a.lower()) for n, a in getaddresses([raw]) if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", a)]
+
+
+def raw_header(msg, name):
+    """Header exactly as sent. The parsed value can already be mangled."""
+    for k, v in msg.raw_items():
+        if k.lower() == name.lower():
+            return re.sub(r"\r?\n[ \t]+", " ", str(v))
+    return ""
 
 
 def header_to(raw):
@@ -131,7 +147,7 @@ def cmd_fetch(a):
         mid = (msg.get("Message-ID") or "").strip()
         if mid in handled:
             continue
-        name, addr = (addresses(msg.get("From")) or [("", "")])[0]
+        name, addr = (addresses(raw_header(msg, "From")) or [("", "")])[0]
         out.append({
             "uid": uid.decode(),
             "message_id": mid,
@@ -177,7 +193,7 @@ def cmd_draft(a):
                f"Date: {orig.get('Date','')}\nSubject: {subj}\nTo: {orig.get('To','')}\n\n{text_body(orig)}")
         d.set_content(body + fwd)
     else:
-        to = header_to(a.to or orig.get("Reply-To") or orig.get("From"))
+        to = header_to(a.to or raw_header(orig, "Reply-To") or raw_header(orig, "From"))
         if not to:
             die(f"no valid recipient address on uid {a.uid}; pass --to")
         d["To"] = to
