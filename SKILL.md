@@ -27,7 +27,9 @@ Only one run at a time: the first `fetch` returns a `run` token; pass `--run <to
 3. Verify: `S fetch --hours 24 --limit 3` returns `"ok": true`.
 4. Seed her voice: save 3–5 real replies Darcy has sent (a brand, a community member, a team
    member) to `~/.config/darcy-inbox/examples/`, one file each. Confirm her sign-offs in
-   `config.signoff`.
+   `config.signoff`. Put any other addresses that reach her inbox in `config.aliases`, and her Gmail
+   signature (if she has one) in `config.gmail_signature`, so reply-all never copies her and an
+   unedited send isn't counted as an edit.
 5. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
    "Run the darcy-inbox-drafts skill."
 

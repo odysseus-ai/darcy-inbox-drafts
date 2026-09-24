@@ -1,5 +1,6 @@
 {
   "inbox_user": "darcy@example.com",
+  "aliases": [],
   "timezone": "America/New_York",
   "run_time": "10:00",
   "lookback_hours": 72,
@@ -22,6 +23,7 @@
     "business": "Best,\nDarcy",
     "team": "Thank you!\nDarcy"
   },
+  "gmail_signature": "",
   "team": {
     "editor@example.com": "Video editor",
     "thumbnails@example.com": "Thumbnail designer",

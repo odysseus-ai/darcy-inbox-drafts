@@ -133,6 +133,27 @@ def check_run(state, token, starting):
 
 # ---------------------------------------------------------------- imap
 
+def load_config():
+    with contextlib.suppress(OSError, ValueError):
+        with open(os.path.join(CONF_DIR, "config.json")) as f:
+            c = json.load(f)
+            return c if isinstance(c, dict) else {}
+    return {}
+
+
+def canonical(addr):
+    """Gmail ignores dots and +tags in the local part, and googlemail.com == gmail.com."""
+    local, _, domain = addr.lower().partition("@")
+    if domain in ("gmail.com", "googlemail.com"):
+        return local.split("+", 1)[0].replace(".", "") + "@gmail.com"
+    return addr.lower()
+
+
+def is_self(addr, user):
+    mine = {canonical(user)} | {canonical(x) for x in load_config().get("aliases", []) if isinstance(x, str)}
+    return canonical(addr) in mine
+
+
 def connect():
     user = os.environ.get("INBOX_USER")
     if not user:
@@ -407,6 +428,8 @@ def new_content(msg, subject):
 
 def has_attachments(msg):
     for p in msg.walk():
+        if p.get_content_type() == "message/rfc822":
+            return True
         if p.is_multipart():
             continue
         if p.get_content_disposition() == "attachment" or (p.get_filename() and p.get_content_maintype() != "text"):
@@ -490,7 +513,7 @@ def attach_originals(d, orig):
             if inner is not None:
                 for sub in inner.walk():
                     skip_inside.add(id(sub))
-                d.add_attachment(inner.as_bytes(), maintype="message", subtype="rfc822",
+                d.add_attachment(email.message_from_bytes(inner.as_bytes(), policy=email.policy.default),
                                  filename=decode_words(part.get_filename() or "forwarded.eml"))
             continue
         if part.is_multipart():
@@ -547,7 +570,7 @@ def cmd_draft(a):
         else:
             kind = "reply"
             to = valid_pairs(a.to, "--to") if a.to is not None else addresses(raw_header(orig, "Reply-To") or raw_header(orig, "From"))
-            to = [p for p in to if p[1] != me]
+            to = [p for p in to if not is_self(p[1], user)]
             if not to:
                 die(f"no valid recipient address on uid {a.uid}; pass --to")
             cc = []
@@ -563,12 +586,12 @@ def cmd_draft(a):
             quoted = "\n".join("> " + line for line in new_content(orig, subj).splitlines())
             d.set_content(f"{body}\n\nOn {clean(raw_header(orig, 'Date'))}, {who} wrote:\n{quoted}\n")
 
-        seen, to_final, cc_final, skipped = {me}, [], [], []
+        seen, to_final, cc_final, skipped = set(), [], [], []
         for group, bucket in ((to, to_final), (cc, cc_final)):
             for p in group:
-                if p[1] in seen:
+                if canonical(p[1]) in seen or is_self(p[1], user):
                     continue
-                seen.add(p[1])
+                seen.add(canonical(p[1]))
                 (bucket if fmt_addr(p) else skipped).append(p)
         if not to_final:
             die(f"no usable recipient on uid {a.uid}"
@@ -577,20 +600,25 @@ def cmd_draft(a):
         if cc_final:
             d["Cc"] = ", ".join(fmt_addr(p) for p in cc_final)
 
+        # Record first: if the state write fails, no draft exists, so a retry can't duplicate one.
+        with locked_state() as state:
+            for old in [k for k, v in state["drafts"].items() if orig_mid and v.get("orig_mid") == orig_mid and v.get("kind") == kind]:
+                del state["drafts"][old]  # a redraft of the same email replaces the earlier record
+            state["drafts"][d["Message-ID"]] = {
+                "kind": kind, "orig_mid": orig_mid, "subject": d["Subject"],
+                "to": header_to(to_final), "cc": header_to(cc_final), "body": body, "created": time.time()}
         drafts = special_folder(m, "\\Drafts", '"[Gmail]/Drafts"')
-        typ, resp = m.append(drafts, r"(\Draft)", imaplib.Time2Internaldate(time.time()), d.as_bytes())
+        try:
+            typ, resp = m.append(drafts, r"(\Draft)", imaplib.Time2Internaldate(time.time()), d.as_bytes())
+        except Exception as e:
+            typ, resp = "NO", str(e)
         if typ != "OK":
+            with locked_state() as state:
+                state["drafts"].pop(d["Message-ID"], None)
             die(f"append to drafts failed: {resp}")
     finally:
         with contextlib.suppress(Exception):
             m.logout()
-
-    with locked_state() as state:
-        for old in [k for k, v in state["drafts"].items() if orig_mid and v.get("orig_mid") == orig_mid and v.get("kind") == kind]:
-            del state["drafts"][old]  # a redraft of the same email replaces the earlier record
-        state["drafts"][d["Message-ID"]] = {
-            "kind": kind, "orig_mid": orig_mid, "subject": d["Subject"],
-            "to": header_to(to_final), "cc": header_to(cc_final), "body": body, "created": time.time()}
     out({"ok": True, "kind": kind, "to": d["To"], "cc": d.get("Cc", ""), "subject": d["Subject"],
          "attachments": sum(1 for _ in d.iter_attachments()),
          "skipped_recipients": [header_to([p]) for p in skipped]})
@@ -620,6 +648,17 @@ def cmd_mark(a):
 
 def normalized(text):
     return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def without_signature(text):
+    """Drop a Gmail signature so an unedited send isn't mistaken for an edit."""
+    text = re.split(r"\n-- ?\n", "\n" + text, maxsplit=1)[0].strip()
+    sig = load_config().get("gmail_signature") or ""
+    if isinstance(sig, str) and sig.strip() and normalized(text).endswith(normalized(sig)):
+        cut = text.lower().rfind(sig.strip().splitlines()[0].strip().lower())
+        if cut > 0:
+            text = text[:cut].rstrip()
+    return text
 
 
 def q(value):
@@ -686,7 +725,9 @@ def cmd_review(a):
                 if msg is not None:
                     subject = decode_words(raw_header(msg, "Subject"))
                     sent_body = re.split(r"\n-{5,} ?Forwarded message", new_content(msg, "Re: " + subject))[0].strip()
-                    ratio = difflib.SequenceMatcher(None, normalized(r.get("body", "")), normalized(sent_body)).ratio()
+                    sent_body = without_signature(sent_body)
+                    ratio = difflib.SequenceMatcher(None, normalized(without_signature(r.get("body", ""))),
+                                                    normalized(sent_body)).ratio()
                     item["status"] = "sent_as_is" if ratio >= 0.97 else "edited"
                     if item["status"] == "edited":
                         item.update({"draft_body": r.get("body", ""), "sent_body": sent_body})
