@@ -21,7 +21,10 @@ herself. Drafts are the approval queue.
    Google Account → Security → 2-Step Verification → App passwords.
 3. Verify: `python3 {baseDir}/scripts/inbox.py fetch --hours 24 --limit 3`
    returns `"ok": true`.
-4. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
+4. Seed her voice: save 3–5 real replies Darcy has sent (a brand, a community member, a team
+   member) to `~/.config/darcy-inbox/examples/`, one file each. Confirm her sign-offs in
+   `config.signoff`.
+5. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
    "Run the darcy-inbox-drafts skill."
 
 ## Run
@@ -32,8 +35,9 @@ herself. Drafts are the approval queue.
    team, and the voice rules.
 2. **Fetch.**
    `python3 {baseDir}/scripts/inbox.py fetch --hours <config.lookback_hours>`
-   Already-handled messages are excluded automatically. If `ok` is false, send Darcy the error in one
-   line and stop. If `count` is 0, send "Inbox clear — nothing new since yesterday." and stop.
+   Returns the oldest unhandled batch (40 by default) plus `remaining`. Already-handled messages are
+   excluded automatically. If `ok` is false, send Darcy the error in one line and stop. If `count`
+   is 0, send "Inbox clear — nothing new since yesterday." and stop.
 3. **Triage.** Put each message in exactly one bucket per `{baseDir}/references/triage.md`. Done when every
    message has a bucket and a one-line reason.
 4. **Draft.** For each message that needs a reply:
@@ -43,9 +47,11 @@ herself. Drafts are the approval queue.
    - Check each command prints `"ok": true`; retry a failure once, then list it in the digest as
      "couldn't draft".
    Follow `{baseDir}/references/email-voice.md`. Any fact you can't source from the thread or config becomes
-   `[[CHECK: …]]` inside the draft. Never guess it.
+   `[[CHECK: …]]` inside the draft. Never guess it. Sign off with the matching `config.signoff`
+   entry. Only use links from `config.links`.
 5. **Mark handled.** `python3 {baseDir}/scripts/inbox.py mark <message_id> …` with every message id you
    triaged (all buckets, including skip). Done when it prints the count.
+   If `remaining` > 0, go back to step 2 for the next batch. Repeat until `remaining` is 0.
 6. **Digest.** Send Darcy one message in her channel using the format below. This is the only message
    this skill sends.
 

@@ -130,6 +130,29 @@ def fetch_one(m, uid):
     return msg, meta
 
 
+def message_keys(m, uids):
+    """(uid, key) oldest first. Key is the Message-ID, or uid:<n> when a message has none,
+    so `mark` never collides on an empty id."""
+    keys = []
+    for i in range(0, len(uids), 200):
+        chunk = uids[i:i + 200]
+        typ, data = m.uid("fetch", b",".join(chunk), "(UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+        if typ != "OK":
+            die(f"header fetch failed: {data}")
+        found = {}
+        for item in data:
+            if not isinstance(item, tuple):
+                continue
+            u = re.search(rb"UID (\d+)", item[0])
+            if u:
+                mid = email.message_from_bytes(item[1]).get("Message-ID", "").strip()
+                found[u.group(1)] = mid
+        for u in chunk:
+            if u in found:
+                keys.append((u, found[u] or f"uid:{u.decode()}"))
+    return keys
+
+
 def cmd_fetch(a):
     m, user = connect()
     m.select("INBOX", readonly=True)
@@ -137,20 +160,18 @@ def cmd_fetch(a):
     typ, data = m.uid("search", "X-GM-RAW", f'"{query}"')
     if typ != "OK":
         die(f"search failed: {data}")
-    uids = data[0].split()[-a.limit:]
     handled = load_state()["handled"]
+    pending = [(u, k) for u, k in message_keys(m, data[0].split()) if k not in handled]
+    batch, remaining = pending[:a.limit], len(pending) - min(len(pending), a.limit)
     out = []
-    for uid in reversed(uids):
+    for uid, key in batch:
         msg, meta = fetch_one(m, uid)
         if msg is None:
-            continue
-        mid = (msg.get("Message-ID") or "").strip()
-        if mid in handled:
             continue
         name, addr = (addresses(raw_header(msg, "From")) or [("", "")])[0]
         out.append({
             "uid": uid.decode(),
-            "message_id": mid,
+            "message_id": key,
             "thread_id": (re.search(r"X-GM-THRID (\d+)", meta) or [None, None])[1],
             "from_name": name,
             "from_email": addr,
@@ -163,7 +184,8 @@ def cmd_fetch(a):
             "body": text_body(msg),
         })
     m.logout()
-    print(json.dumps({"ok": True, "account": user, "count": len(out), "messages": out}, indent=1, ensure_ascii=False))
+    print(json.dumps({"ok": True, "account": user, "count": len(out), "remaining": remaining,
+                      "messages": out}, indent=1, ensure_ascii=False))
 
 
 def quote(msg):
