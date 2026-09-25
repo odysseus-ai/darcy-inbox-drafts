@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draft-only Gmail helper for the darcy-inbox-drafts skill.
+"""Draft-only Gmail helper for the inbox-drafts skill.
 
 Commands (all print one JSON object; "ok": false on any error):
   fetch   Oldest unhandled Primary-inbox messages. Read-only; never marks mail read.
@@ -9,9 +9,9 @@ Commands (all print one JSON object; "ok": false on any error):
   review  Compare earlier drafts with Sent/Drafts: sent_as_is, edited, deleted, pending, expired.
 
 Auth: IMAP with a Gmail app password.
-  INBOX_USER       Gmail address (default: inbox_user in ~/.config/darcy-inbox/config.json)
-  INBOX_PASS_FILE  app password file (default ~/.config/darcy-inbox/app-password)
-State: INBOX_STATE (default ~/.config/darcy-inbox/state.json)
+  INBOX_USER       Gmail address (default: inbox_user in ~/.config/inbox-drafts/config.json)
+  INBOX_PASS_FILE  app password file (default ~/.config/inbox-drafts/app-password)
+State: INBOX_STATE (default ~/.config/inbox-drafts/state.json)
 
 One run at a time: the first `fetch` of a run returns a `run` token and takes a 45-minute lease.
 Pass `--run <token>` to later fetch/mark calls; `mark --final` releases the lease.
@@ -36,7 +36,7 @@ from email.utils import formataddr, formatdate, make_msgid
 from html.parser import HTMLParser
 
 HOST = "imap.gmail.com"
-CONF_DIR = os.path.expanduser("~/.config/darcy-inbox")
+CONF_DIR = os.path.expanduser("~/.config/inbox-drafts")
 STATE = os.path.abspath(os.path.expanduser(os.environ.get("INBOX_STATE", os.path.join(CONF_DIR, "state.json"))))
 BODY_MAX = 4000
 HTML_MAX = 200_000

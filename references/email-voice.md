@@ -4,7 +4,7 @@ Sources: Akera-Agency/content-writing `workspaces/grant-house/` as of Sept 19, 2
 `voice.md` (spoken voice + current positioning), `skool-voice.md` (649 of her real Skool posts),
 `brief.md`, `offer.md`, `banned-sayings.txt`, and the positioning decision ledger. Her own words
 beat this file: Darcy asked for drafts built from *her* past writing, not generic AI copy (Sept 11
-call, 05:20). Files in `~/.config/darcy-inbox/examples/` override everything below.
+call, 05:20). Files in `~/.config/inbox-drafts/examples/` override everything below.
 
 ## Who she is in email
 

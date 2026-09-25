@@ -1,4 +1,4 @@
-# darcy-inbox-drafts
+# inbox-drafts
 
 An OpenClaw skill that clears Darcy's inbox every morning without ever sending an email itself.
 
@@ -20,20 +20,20 @@ first. To reject, she deletes it. Nothing leaves her inbox without her tap.
 On the machine running the OpenClaw agent:
 
 ```bash
-openclaw skills install git:odysseus-ai/darcy-inbox-drafts@main
-mkdir -p ~/.config/darcy-inbox/examples
-cp ~/.openclaw/workspace/skills/darcy-inbox-drafts/config.example.json ~/.config/darcy-inbox/config.json
-nano ~/.config/darcy-inbox/config.json          # her address, timezone, brand manager, team
-nano ~/.config/darcy-inbox/app-password         # Gmail app password
-chmod 600 ~/.config/darcy-inbox/app-password
-python3 ~/.openclaw/workspace/skills/darcy-inbox-drafts/scripts/inbox.py check
+openclaw skills install git:odysseus-ai/inbox-drafts@main
+mkdir -p ~/.config/inbox-drafts/examples
+cp ~/.openclaw/workspace/skills/inbox-drafts/config.example.json ~/.config/inbox-drafts/config.json
+nano ~/.config/inbox-drafts/config.json          # her address, timezone, brand manager, team
+nano ~/.config/inbox-drafts/app-password         # Gmail app password
+chmod 600 ~/.config/inbox-drafts/app-password
+python3 ~/.openclaw/workspace/skills/inbox-drafts/scripts/inbox.py check
 ```
 
 The last command must print `"ok": true`. Then ask the agent:
-*"Schedule the darcy-inbox-drafts skill every day at 10:00 my time."*
+*"Schedule the inbox-drafts skill every day at 10:00 my time."*
 
 Update later with the same `install` command. Config, password, and learned examples live in
-`~/.config/darcy-inbox/` and survive reinstalls.
+`~/.config/inbox-drafts/` and survive reinstalls.
 
 ## Files
 

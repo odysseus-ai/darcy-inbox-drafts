@@ -1,9 +1,9 @@
 ---
-name: darcy-inbox-drafts
-description: "Daily inbox run, check my email, draft replies: triages Darcy's Gmail, saves reply drafts in her voice to Gmail Drafts, sends her a digest. Never sends email."
+name: inbox-drafts
+description: "Daily inbox run, check my email, draft replies: triages my Gmail, saves reply drafts in my voice to Gmail Drafts, sends me a digest. Never sends email."
 ---
 
-# Darcy inbox drafts
+# Inbox drafts
 
 Every morning, read Darcy's new email, draft the replies she would write, save them as threaded
 drafts in her Gmail, and send her one short digest. She approves by opening Gmail and tapping
@@ -19,31 +19,31 @@ Only one run at a time: the first `fetch` returns a `run` token; pass `--run <to
 
 ## Setup (once)
 
-1. `mkdir -p ~/.config/darcy-inbox/examples && cp {baseDir}/config.example.json ~/.config/darcy-inbox/config.json`,
+1. `mkdir -p ~/.config/inbox-drafts/examples && cp {baseDir}/config.example.json ~/.config/inbox-drafts/config.json`,
    then fill it in. Config and examples live outside the skill folder so reinstalling the skill
    never wipes them.
-2. Put her Gmail app password in `~/.config/darcy-inbox/app-password` (chmod 600). Google Account →
+2. Put her Gmail app password in `~/.config/inbox-drafts/app-password` (chmod 600). Google Account →
    Security → 2-Step Verification → App passwords.
 3. Verify: `S check` returns `"ok": true` (logs in, changes nothing).
 4. Seed her voice: save 3–5 real replies Darcy has sent (a brand, a community member, a team
-   member) to `~/.config/darcy-inbox/examples/`, one file each. Confirm her sign-offs in
+   member) to `~/.config/inbox-drafts/examples/`, one file each. Confirm her sign-offs in
    `config.signoff`. Put any other addresses that reach her inbox in `config.aliases`, and her Gmail
    signature (if she has one) in `config.gmail_signature`, so reply-all never copies her and an
    unedited send isn't counted as an edit.
 5. Check `config.digest.channel` and `config.digest.target` are filled in and a test message reaches
    Darcy. Don't schedule until it does: an undeliverable digest means nothing gets marked handled.
 6. Schedule the daily run at `config.run_time` in `config.timezone`, with the prompt
-   "Run the darcy-inbox-drafts skill."
+   "Run the inbox-drafts skill."
 
 ## Run
 
 0. **Learn from yesterday.** `S review`. For each result:
-   - `edited`: save to `~/.config/darcy-inbox/examples/YYYY-MM-DD-<slug>.md` with a one-line summary
+   - `edited`: save to `~/.config/inbox-drafts/examples/YYYY-MM-DD-<slug>.md` with a one-line summary
      of the original email, the draft, and her sent version. Note what she changed.
    - `sent_as_is`, `deleted`, `expired`: count only.
    Keep the counts for the digest.
-1. **Load context.** Read `~/.config/darcy-inbox/config.json`, `{baseDir}/references/triage.md`,
-   `{baseDir}/references/email-voice.md`, and the 10 newest files in `~/.config/darcy-inbox/examples/`.
+1. **Load context.** Read `~/.config/inbox-drafts/config.json`, `{baseDir}/references/triage.md`,
+   `{baseDir}/references/email-voice.md`, and the 10 newest files in `~/.config/inbox-drafts/examples/`.
    Her examples beat the voice guide wherever they differ.
 2. **Fetch.** First batch: `S fetch --hours <config.lookback_hours>`. Later batches:
    `S fetch --hours <config.lookback_hours> --run <token>`. Returns the oldest unhandled batch (40 by
